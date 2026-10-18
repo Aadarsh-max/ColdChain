@@ -9,5 +9,6 @@ export const BUS_EVENTS = Object.freeze({
   ALERT_UPDATED: 'alert:updated',
   ALERT_CLOSED: 'alert:closed',
   DEVICE_STATUS: 'device:status',
-  DEVICE_EVENT: 'device:event'
+  DEVICE_EVENT: 'device:event',
+  SHIPMENT_UPDATED: 'shipment:updated'
 });

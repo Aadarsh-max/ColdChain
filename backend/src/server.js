@@ -6,9 +6,11 @@ import { Setting } from './models/Setting.js';
 import { startMqtt, stopMqtt } from './mqtt/client.js';
 import { handleMessage } from './mqtt/handlers.js';
 import { startWatchdog, stopWatchdog } from './services/offlineWatchdog.js';
+import { attachSocket } from './sockets/io.js';
 import app from './app.js';
 
 const server = http.createServer(app);
+const socketHandle = attachSocket(server);
 
 const start = async () => {
   try {
@@ -32,7 +34,10 @@ const shutdown = async (signal) => {
   shuttingDown = true;
   logger.info(`${signal} received, shutting down`);
   stopWatchdog();
+  socketHandle.detach();
+  socketHandle.io.disconnectSockets(true);
   server.close();
+  if (server.closeAllConnections) server.closeAllConnections();
   try {
     await stopMqtt();
     await disconnectDB();
