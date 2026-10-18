@@ -3,6 +3,9 @@ import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { connectDB, disconnectDB } from './config/db.js';
 import { Setting } from './models/Setting.js';
+import { startMqtt, stopMqtt } from './mqtt/client.js';
+import { handleMessage } from './mqtt/handlers.js';
+import { startWatchdog, stopWatchdog } from './services/offlineWatchdog.js';
 import app from './app.js';
 
 const server = http.createServer(app);
@@ -11,6 +14,8 @@ const start = async () => {
   try {
     await connectDB();
     await Setting.getGlobal();
+    startMqtt(handleMessage);
+    startWatchdog();
     server.listen(env.PORT, () => {
       logger.info(`Backend listening on http://localhost:${env.PORT}`);
     });
@@ -26,8 +31,10 @@ const shutdown = async (signal) => {
   if (shuttingDown) return;
   shuttingDown = true;
   logger.info(`${signal} received, shutting down`);
+  stopWatchdog();
   server.close();
   try {
+    await stopMqtt();
     await disconnectDB();
   } catch (err) {
     logger.error(`Shutdown error: ${err.message}`);
