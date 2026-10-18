@@ -28,6 +28,9 @@ export const fetchShipmentHistory = (shipmentId) =>
 export const fetchShipmentReadings = (shipmentId, params) =>
   api.get(`/shipments/${encodeURIComponent(shipmentId)}/readings`, { params }).then((res) => res.data);
 
+export const fetchShipmentSummary = (shipmentId) =>
+  api.get(`/reports/shipments/${encodeURIComponent(shipmentId)}/summary`).then((res) => res.data.data);
+
 export const createShipment = (body) => api.post('/shipments', body).then((res) => res.data.data);
 
 export const updateShipment = (shipmentId, body) =>

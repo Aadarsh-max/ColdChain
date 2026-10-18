@@ -7,6 +7,9 @@ import AlertsPage from './pages/AlertsPage.jsx';
 import ShipmentsPage from './pages/ShipmentsPage.jsx';
 import ShipmentDetailPage from './pages/ShipmentDetailPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import LiveTrackingPage from './pages/LiveTrackingPage.jsx';
+import AnalyticsPage from './pages/AnalyticsPage.jsx';
+import ReportsPage from './pages/ReportsPage.jsx';
 import PlaceholderPage from './pages/PlaceholderPage.jsx';
 
 export default function App() {
@@ -16,23 +19,14 @@ export default function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<DashboardPage />} />
-            <Route path="devices" element={<DevicesPage />} />
-            <Route path="alerts" element={<AlertsPage />} />
+            <Route path="tracking" element={<LiveTrackingPage />} />
             <Route path="shipments" element={<ShipmentsPage />} />
             <Route path="shipments/:shipmentId" element={<ShipmentDetailPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="alerts" element={<AlertsPage />} />
+            <Route path="devices" element={<DevicesPage />} />
+            <Route path="reports" element={<ReportsPage />} />
             <Route path="settings" element={<SettingsPage />} />
-            <Route
-              path="tracking"
-              element={<PlaceholderPage title="Live Tracking" note="The Google Maps view is built in Phase 6B." />}
-            />
-            <Route
-              path="analytics"
-              element={<PlaceholderPage title="Analytics" note="Full temperature analytics are built in Phase 6B." />}
-            />
-            <Route
-              path="reports"
-              element={<PlaceholderPage title="Reports" note="History, sync records, and CSV export are built in Phase 6B." />}
-            />
             <Route path="*" element={<PlaceholderPage title="Page not found" note="This page does not exist." />} />
           </Route>
         </Routes>

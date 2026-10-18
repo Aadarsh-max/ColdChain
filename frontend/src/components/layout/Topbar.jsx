@@ -28,7 +28,7 @@ export default function Topbar({ onMenu }) {
   };
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 items-center gap-3 bg-navy-900 px-4 text-white shadow-md sm:px-6">
+    <header className="print:hidden sticky top-0 z-50 flex h-16 items-center gap-3 bg-navy-900 px-4 text-white shadow-md sm:px-6">
       <button
         type="button"
         onClick={onMenu}
