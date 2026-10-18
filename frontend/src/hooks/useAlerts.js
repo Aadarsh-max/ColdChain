@@ -10,3 +10,8 @@ export const useRecentAlerts = (deviceId, limit = 3) => {
     { enabled: Boolean(deviceId), refreshKey }
   );
 };
+
+export const useAlertList = (params, reload = 0) => {
+  const refreshKey = useLiveRefresh(3000);
+  return useFetch(() => fetchAlerts(params), JSON.stringify(params), { refreshKey: refreshKey + reload });
+};

@@ -7,7 +7,14 @@ export const api = axios.create({
   timeout: 10000
 });
 
-export const errorMessage = (err) =>
-  (err && err.response && err.response.data && err.response.data.error && err.response.data.error.message) ||
-  (err && err.message) ||
-  'Request failed';
+export const errorMessage = (err) => {
+  const body = err && err.response && err.response.data && err.response.data.error;
+  if (body) {
+    if (Array.isArray(body.details) && body.details.length > 0) {
+      const parts = body.details.map((item) => (item.path ? `${item.path}: ${item.message}` : item.message));
+      return `${body.message}. ${parts.join('; ')}`;
+    }
+    return body.message || 'Request failed';
+  }
+  return (err && err.message) || 'Request failed';
+};
