@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-navy-800: #12204a;
+  --color-navy-900: #0b1736;
+  --color-navy-950: #070f26;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #eef3fb;
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+}
