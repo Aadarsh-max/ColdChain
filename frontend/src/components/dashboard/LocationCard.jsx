@@ -7,20 +7,31 @@ import { durationText, formatCoordinate, formatNumber, formatTime } from '../../
 
 export default function LocationCard({ location, latest, shipmentId, route }) {
   const status = location ? location.status : 'none';
-  const badge =
-    status === 'current' ? (
+
+  let badge = (
+    <Badge tone="slate" dot>
+      No location
+    </Badge>
+  );
+  if (status === 'current') {
+    badge = (
       <Badge tone="green" dot>
         Live
       </Badge>
-    ) : status === 'last_known' ? (
+    );
+  } else if (status === 'manual') {
+    badge = (
+      <Badge tone="blue" dot>
+        Fixed site
+      </Badge>
+    );
+  } else if (status === 'last_known') {
+    badge = (
       <Badge tone="amber" dot>
         Last known
       </Badge>
-    ) : (
-      <Badge tone="slate" dot>
-        No location
-      </Badge>
     );
+  }
 
   const action = (
     <Link
@@ -57,6 +68,9 @@ export default function LocationCard({ location, latest, shipmentId, route }) {
               <div>
                 {status === 'current' ? 'Last Updated' : 'Fix time'}: {formatTime(location.timestamp)}
               </div>
+              {status === 'manual' && (
+                <div className="font-semibold text-blue-700">Fixed site location set in firmware. Not GPS.</div>
+              )}
               {status === 'last_known' && (
                 <div className="font-semibold text-amber-700">
                   Not current. Position is {durationText(location.ageSeconds)} old.
@@ -64,12 +78,12 @@ export default function LocationCard({ location, latest, shipmentId, route }) {
               )}
             </div>
           ) : (
-            <div className="mt-2 text-slate-600">No valid GPS fix has been received. Location is unknown.</div>
+            <div className="mt-2 text-slate-600">No valid location has been received. Location is unknown.</div>
           )}
         </div>
       </div>
       <p className="mt-2 text-[11px] text-slate-400">
-        Route preview from valid GPS fixes only. The Google Maps view replaces this in Phase 6.
+        Route preview from valid GPS fixes only. Open Live Tracking for the full map.
       </p>
     </Card>
   );

@@ -22,6 +22,7 @@ export const telemetrySchema = z
     ambientTemperatureC: numeric(-55, 125),
     latitude: numeric(-90, 90),
     longitude: numeric(-180, 180),
+    locationSource: z.enum(['gps', 'manual']).default('gps'),
     gpsFix: z.boolean().default(false),
     gpsSatellites: z.number().int().min(0).max(60).default(0),
     speedKmph: numeric(0, 500),

@@ -31,15 +31,33 @@ export default function LiveTrackingPage() {
   const route = history.data ? history.data.route : [];
   const speed = status === 'current' && latest ? latest.speedKmph : null;
 
-  let notice = 'No valid GPS fix has been received yet. Location is unknown, so nothing is drawn on the map.';
+  let notice = 'No valid location has been received yet. Location is unknown, so nothing is drawn on the map.';
   let tone = 'bg-slate-50 border-slate-200 text-slate-700';
   if (status === 'current') {
     notice = 'Current position from a valid GPS fix.';
     tone = 'bg-green-50 border-green-200 text-green-800';
+  } else if (status === 'manual') {
+    notice = 'Fixed site location set in the firmware. This is not a GPS reading. A real fix replaces it automatically.';
+    tone = 'bg-blue-50 border-blue-200 text-blue-800';
   } else if (status === 'last_known') {
     notice = `This is the last known location, not the current one. The position is ${durationText(location.ageSeconds)} old.`;
     tone = 'bg-amber-50 border-amber-200 text-amber-800';
   }
+
+  const statusBadge = (
+    <Badge
+      tone={status === 'current' ? 'green' : status === 'manual' ? 'blue' : status === 'last_known' ? 'amber' : 'slate'}
+      dot
+    >
+      {status === 'current'
+        ? 'Current'
+        : status === 'manual'
+          ? 'Fixed site'
+          : status === 'last_known'
+            ? 'Last known'
+            : 'No location'}
+    </Badge>
+  );
 
   return (
     <div className="space-y-5">
@@ -73,17 +91,16 @@ export default function LiveTrackingPage() {
                 speed={speed}
               />
               <p className="mt-2 text-[11px] text-slate-400">
-                Green dot: first recorded fix. Red marker: current position. Grey marker: last known position. Indoors
-                or without a fix, the device reports no location and none is invented.
+                Green dot: first recorded fix. Red marker: current GPS position. Blue marker: fixed site location set
+                manually. Grey marker: last known position. Indoors the device reports no GPS fix and none is invented.
               </p>
             </Card>
 
             <div className="space-y-5">
               <Card title="Position details">
-                <Row label="Status">
-                  <Badge tone={status === 'current' ? 'green' : status === 'last_known' ? 'amber' : 'slate'} dot>
-                    {status === 'current' ? 'Current' : status === 'last_known' ? 'Last known' : 'No location'}
-                  </Badge>
+                <Row label="Status">{statusBadge}</Row>
+                <Row label="Source">
+                  {location && location.available ? (location.source === 'manual' ? 'Manual (not GPS)' : 'GPS') : '--'}
                 </Row>
                 <Row label="Latitude">{location && location.available ? formatCoordinate(location.latitude) : '--'}</Row>
                 <Row label="Longitude">{location && location.available ? formatCoordinate(location.longitude) : '--'}</Row>

@@ -27,7 +27,8 @@ const deviceSchema = new mongoose.Schema(
     lastLocation: {
       latitude: { type: Number, default: null },
       longitude: { type: Number, default: null },
-      timestamp: { type: Date, default: null }
+      timestamp: { type: Date, default: null },
+      source: { type: String, default: 'gps' }
     },
     currentShipmentId: { type: String, default: null, index: true },
     isSimulated: { type: Boolean, default: false }

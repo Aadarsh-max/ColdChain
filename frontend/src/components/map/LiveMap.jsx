@@ -18,17 +18,27 @@ const popupContent = (location, shipmentId, speed) => {
 
   add(shipmentId ? `Shipment: ${shipmentId}` : 'Device position', true);
   add(
-    location.status === 'current' ? 'Current position (valid GPS fix)' : 'Last known location, not current',
+    location.status === 'current'
+      ? 'Current position (valid GPS fix)'
+      : location.status === 'manual'
+        ? 'Fixed site location (set manually, not GPS)'
+        : 'Last known location, not current',
     true,
-    location.status === 'current' ? '#15803d' : '#b45309'
+    location.status === 'last_known' ? '#b45309' : '#15803d'
   );
   add(`Lat: ${formatCoordinate(location.latitude)}`);
   add(`Lng: ${formatCoordinate(location.longitude)}`);
   if (location.status === 'current' && speed !== null && speed !== undefined) add(`Speed: ${Math.round(speed)} km/h`);
   add(`Satellites: ${location.satellites || 0}`);
   add(`Fix time: ${formatDateTime(location.timestamp)}`);
-  if (location.status !== 'current') add(`Position age: ${durationText(location.ageSeconds)}`);
+  if (location.status === 'last_known') add(`Position age: ${durationText(location.ageSeconds)}`);
   return box;
+};
+
+const markerColor = (status) => {
+  if (status === 'current') return '#ef4444';
+  if (status === 'manual') return '#2563eb';
+  return '#64748b';
 };
 
 export default function LiveMap({ route = [], location, shipmentId, speed, heightClass = 'h-[520px]' }) {
@@ -63,7 +73,7 @@ export default function LiveMap({ route = [], location, shipmentId, speed, heigh
     if (points.length === 0) return false;
 
     if (points.length === 1) {
-      map.setView(points[0], 14);
+      map.setView(points[0], 16);
     } else {
       map.fitBounds(L.latLngBounds(points), { padding: [40, 40] });
     }
@@ -99,7 +109,6 @@ export default function LiveMap({ route = [], location, shipmentId, speed, heigh
     }
 
     if (location && location.available) {
-      const isCurrent = location.status === 'current';
       const position = [location.latitude, location.longitude];
 
       if (!layer.marker) {
@@ -107,7 +116,7 @@ export default function LiveMap({ route = [], location, shipmentId, speed, heigh
         layer.marker.bindPopup(popupContent(location, shipmentId, speed));
       }
       layer.marker.setLatLng(position);
-      layer.marker.setStyle({ fillColor: isCurrent ? '#ef4444' : '#64748b' });
+      layer.marker.setStyle({ fillColor: markerColor(location.status) });
       layer.marker.setPopupContent(popupContent(location, shipmentId, speed));
       if (!map.hasLayer(layer.marker)) layer.marker.addTo(map);
       layer.marker.bringToFront();
@@ -115,7 +124,7 @@ export default function LiveMap({ route = [], location, shipmentId, speed, heigh
       map.removeLayer(layer.marker);
     }
 
-    const key = shipmentId || 'none';
+    const key = `${shipmentId || 'none'}:${location && location.available ? location.status : 'none'}`;
     if (fitted.current !== key && fit()) fitted.current = key;
   }, [map, route, location, shipmentId, speed, fit]);
 

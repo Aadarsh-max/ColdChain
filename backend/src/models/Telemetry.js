@@ -16,6 +16,7 @@ const telemetrySchema = new mongoose.Schema(
     ambientTemperatureC: { type: Number, default: null },
     latitude: { type: Number, default: null },
     longitude: { type: Number, default: null },
+    locationSource: { type: String, enum: ['gps', 'manual'], default: 'gps' },
     gpsFix: { type: Boolean, default: false },
     gpsSatellites: { type: Number, default: 0 },
     speedKmph: { type: Number, default: null },

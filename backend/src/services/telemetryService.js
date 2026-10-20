@@ -79,17 +79,20 @@ export const validateIncoming = ({
     if (-diffMs > maxAgeDays * DAY_MS) return { ok: false, reason: 'timestamp_too_old' };
   }
 
-  if (!data.gpsFix && data.latitude !== null) {
+  if (!data.gpsFix && data.latitude !== null && data.locationSource !== 'manual') {
     data.latitude = null;
     data.longitude = null;
     warnings.push('coordinates_ignored_without_fix');
   }
 
-  if (data.gpsFix && !isValidCoordinate(data.latitude, data.longitude)) {
+  const hasCoords = data.latitude !== null && data.longitude !== null;
+  if (hasCoords && !isValidCoordinate(data.latitude, data.longitude)) {
     data.latitude = null;
     data.longitude = null;
-    data.gpsFix = false;
-    if (data.sensors.gps === 'ok') data.sensors.gps = 'no_fix';
+    if (data.gpsFix) {
+      data.gpsFix = false;
+      if (data.sensors.gps === 'ok') data.sensors.gps = 'no_fix';
+    }
     warnings.push('invalid_coordinates');
   }
 

@@ -47,7 +47,8 @@ export const updateDeviceFromTelemetry = async ({ sample, shipmentId, receivedAt
     set.queuedRecords = sample.queuedRecords;
   }
 
-  const hasLocation = sample.gpsFix && sample.latitude !== null && sample.longitude !== null;
+  const hasLocation =
+    (sample.gpsFix || sample.locationSource === 'manual') && sample.latitude !== null && sample.longitude !== null;
   const locationIsNewer =
     !previous || !previous.lastLocation || !previous.lastLocation.timestamp ||
     sample.timestamp >= previous.lastLocation.timestamp;
@@ -56,7 +57,8 @@ export const updateDeviceFromTelemetry = async ({ sample, shipmentId, receivedAt
     set.lastLocation = {
       latitude: sample.latitude,
       longitude: sample.longitude,
-      timestamp: sample.timestamp
+      timestamp: sample.timestamp,
+      source: sample.gpsFix ? 'gps' : sample.locationSource || 'gps'
     };
   }
 

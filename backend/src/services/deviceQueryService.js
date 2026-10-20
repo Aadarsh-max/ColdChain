@@ -23,6 +23,7 @@ export const buildLocation = ({ lastLocation, latest, staleAfterSeconds, now = D
     return {
       available: false,
       status: 'none',
+      source: null,
       latitude: null,
       longitude: null,
       timestamp: null,
@@ -33,11 +34,14 @@ export const buildLocation = ({ lastLocation, latest, staleAfterSeconds, now = D
   }
 
   const ageSeconds = ageInSeconds(lastLocation.timestamp, now);
-  const current = gpsFix && ageSeconds <= staleAfterSeconds;
+  const fresh = ageSeconds <= staleAfterSeconds;
+  const manual = lastLocation.source === 'manual' && !gpsFix;
+  const status = manual ? (fresh ? 'manual' : 'last_known') : gpsFix && fresh ? 'current' : 'last_known';
 
   return {
     available: true,
-    status: current ? 'current' : 'last_known',
+    status,
+    source: manual ? 'manual' : 'gps',
     latitude: lastLocation.latitude,
     longitude: lastLocation.longitude,
     timestamp: lastLocation.timestamp,
