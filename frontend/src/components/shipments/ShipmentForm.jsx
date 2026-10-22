@@ -29,8 +29,8 @@ const initialState = (shipment) => ({
   trackingCode: textOf(shipment && shipment.trackingCode),
   productName: textOf(shipment && shipment.productName),
   productCategory: textOf(shipment && shipment.productCategory),
-  minTempC: shipment ? String(shipment.minTempC) : '2',
-  maxTempC: shipment ? String(shipment.maxTempC) : '8',
+  minTempC: shipment ? String(shipment.minTempC) : '10',
+  maxTempC: shipment ? String(shipment.maxTempC) : '15',
   originName: textOf(shipment && shipment.origin && shipment.origin.name),
   originLat: textOf(shipment && shipment.origin && shipment.origin.latitude),
   originLng: textOf(shipment && shipment.origin && shipment.origin.longitude),
@@ -136,12 +136,17 @@ export default function ShipmentForm({ shipment, devices, onSubmit, onCancel }) 
           <input className={inputClass} value={form.trackingCode} onChange={set('trackingCode')} />
         </Field>
         <Field label="Product name">
-          <input className={inputClass} value={form.productName} onChange={set('productName')} placeholder="Vaccines" />
+          <input className={inputClass} value={form.productName} onChange={set('productName')} placeholder="Medicine" />
         </Field>
         <Field label="Product category">
-          <input className={inputClass} value={form.productCategory} onChange={set('productCategory')} />
+          <input
+            className={inputClass}
+            value={form.productCategory}
+            onChange={set('productCategory')}
+            placeholder="Medicine"
+          />
         </Field>
-        <Field label="Minimum temperature (°C)" hint="Product-specific. 2 to 8 is only a demo default.">
+        <Field label="Minimum temperature (°C)" hint="Set this from the storage range on the product label.">
           <input className={inputClass} type="number" step="0.1" value={form.minTempC} onChange={set('minTempC')} />
         </Field>
         <Field label="Maximum temperature (°C)">
@@ -151,7 +156,7 @@ export default function ShipmentForm({ shipment, devices, onSubmit, onCancel }) 
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Origin" className="sm:col-span-1">
-          <input className={inputClass} value={form.originName} onChange={set('originName')} placeholder="Mumbai, MH" />
+          <input className={inputClass} value={form.originName} onChange={set('originName')} placeholder="Palghar, MH" />
         </Field>
         <Field label="Origin latitude (optional)">
           <input className={inputClass} type="number" step="any" value={form.originLat} onChange={set('originLat')} />
@@ -228,7 +233,7 @@ export default function ShipmentForm({ shipment, devices, onSubmit, onCancel }) 
             value={form.statusNote}
             onChange={set('statusNote')}
             maxLength={200}
-            placeholder="Reached Mumbai Central Hub"
+            placeholder="Dispatched from college"
           />
         </Field>
       </div>

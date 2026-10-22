@@ -10,6 +10,10 @@ export const CURRENT_USER = { name: 'Aadarsh Shrivastav', role: 'Admin' };
 
 export const LOW_BATTERY_UI = 20;
 
+export const SITE_NAME = 'St. John College of Engineering and Management, Palghar';
+export const SITE_SHORT = 'St. John College';
+export const SITE_AREA = 'Palghar, Maharashtra';
+
 export const SHIPMENT_STATUS = {
   planned: { label: 'Planned', tone: 'slate' },
   at_warehouse: { label: 'At Warehouse', tone: 'blue' },

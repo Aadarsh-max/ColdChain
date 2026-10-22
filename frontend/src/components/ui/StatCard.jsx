@@ -16,7 +16,8 @@ export default function StatCard({
   label,
   sub,
   subClass = 'text-slate-500',
-  ok = null
+  ok = null,
+  valueClass = 'text-3xl'
 }) {
   const style = TONES[tone] || TONES.blue;
 
@@ -33,7 +34,7 @@ export default function StatCard({
       )}
       <Icon className={`h-12 w-12 shrink-0 ${style.icon}`} strokeWidth={1.6} />
       <div className="min-w-0">
-        <div className={`truncate text-3xl font-bold leading-tight ${style.value}`}>
+        <div className={`truncate font-bold leading-tight ${valueClass} ${style.value}`} title={String(value)}>
           {value}
           {unit && <span className="ml-1 text-2xl">{unit}</span>}
         </div>

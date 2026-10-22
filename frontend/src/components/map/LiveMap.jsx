@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Crosshair } from 'lucide-react';
+import { SITE_NAME } from '../../utils/constants.js';
 import { durationText, formatCoordinate, formatDateTime } from '../../utils/format.js';
 
 const popupContent = (location, shipmentId, speed) => {
@@ -17,20 +18,25 @@ const popupContent = (location, shipmentId, speed) => {
   };
 
   add(shipmentId ? `Shipment: ${shipmentId}` : 'Device position', true);
+
+  if (location.status === 'manual') {
+    add(SITE_NAME, true, '#1d4ed8');
+    add(`Lat: ${formatCoordinate(location.latitude)}`);
+    add(`Lng: ${formatCoordinate(location.longitude)}`);
+    add(`Updated: ${formatDateTime(location.timestamp)}`);
+    return box;
+  }
+
   add(
-    location.status === 'current'
-      ? 'Current position (valid GPS fix)'
-      : location.status === 'manual'
-        ? 'Fixed site location (set manually, not GPS)'
-        : 'Last known location, not current',
+    location.status === 'current' ? 'Current position (valid GPS fix)' : 'Last known location, not current',
     true,
-    location.status === 'last_known' ? '#b45309' : '#15803d'
+    location.status === 'current' ? '#15803d' : '#b45309'
   );
   add(`Lat: ${formatCoordinate(location.latitude)}`);
   add(`Lng: ${formatCoordinate(location.longitude)}`);
   if (location.status === 'current' && speed !== null && speed !== undefined) add(`Speed: ${Math.round(speed)} km/h`);
   add(`Satellites: ${location.satellites || 0}`);
-  add(`Fix time: ${formatDateTime(location.timestamp)}`);
+  add(`Position time: ${formatDateTime(location.timestamp)}`);
   if (location.status === 'last_known') add(`Position age: ${durationText(location.ageSeconds)}`);
   return box;
 };
@@ -100,7 +106,7 @@ export default function LiveMap({ route = [], location, shipmentId, speed, heigh
           weight: 3,
           fillColor: '#16a34a',
           fillOpacity: 1
-        }).bindTooltip('First recorded fix');
+        }).bindTooltip('Route start');
       }
       layer.start.setLatLng(path[0]);
       if (!map.hasLayer(layer.start)) layer.start.addTo(map);

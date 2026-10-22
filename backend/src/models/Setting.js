@@ -3,8 +3,8 @@ import mongoose from 'mongoose';
 const settingSchema = new mongoose.Schema(
   {
     key: { type: String, required: true, unique: true, default: 'global' },
-    defaultMinTempC: { type: Number, default: 2 },
-    defaultMaxTempC: { type: Number, default: 8 },
+    defaultMinTempC: { type: Number, default: 10 },
+    defaultMaxTempC: { type: Number, default: 15 },
     hysteresisC: { type: Number, default: 0.3, min: 0 },
     excursionDebounceSamples: { type: Number, default: 3, min: 1 },
     criticalExcursionMinutes: { type: Number, default: 30, min: 1 },
