@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Download, History } from 'lucide-react';
-import { API_URL } from '../../api/client.js';
+import { History } from 'lucide-react';
 import { fetchReadings } from '../../api/endpoints.js';
 import { useDeviceOverview } from '../../hooks/useDevices.js';
 import { useFetch } from '../../hooks/useFetch.js';
@@ -8,6 +7,7 @@ import { cleanParams } from '../../utils/params.js';
 import { durationText, formatDateTime, formatNumber } from '../../utils/format.js';
 import Badge from '../ui/Badge.jsx';
 import Card from '../ui/Card.jsx';
+import DownloadButton from '../ui/DownloadButton.jsx';
 import EmptyState from '../ui/EmptyState.jsx';
 import Field, { inputClass } from '../ui/Field.jsx';
 import Pagination from '../ui/Pagination.jsx';
@@ -52,7 +52,7 @@ export default function ReadingsPanel({ deviceId, mode }) {
   const result = list.data;
   const rows = result ? result.data : null;
 
-  const csvHref = `${API_URL}/api/reports/readings.csv?${new URLSearchParams({ deviceId, ...filterParams }).toString()}`;
+  const csvParams = useMemo(() => ({ deviceId, ...filterParams }), [deviceId, filterParams]);
 
   const change = (setter) => (event) => {
     setter(event.target.value);
@@ -62,12 +62,7 @@ export default function ReadingsPanel({ deviceId, mode }) {
   const sync = overview.data ? overview.data.sync : null;
 
   const csvLink = (
-    <a
-      href={csvHref}
-      className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-    >
-      <Download className="h-4 w-4" /> Export CSV
-    </a>
+    <DownloadButton path="/reports/readings.csv" params={csvParams} filename={`readings-${deviceId}.csv`} />
   );
 
   return (
@@ -109,7 +104,7 @@ export default function ReadingsPanel({ deviceId, mode }) {
         {rows && rows.length === 0 && (
           <EmptyState
             title={isSync ? 'No synchronized records' : 'No readings match these filters'}
-            text={isSync ? 'Run the simulator scenario offline-sync to create some.' : undefined}
+            text={isSync ? 'Records uploaded after a connection outage appear here.' : undefined}
           />
         )}
         {rows && rows.length > 0 && (
@@ -124,7 +119,6 @@ export default function ReadingsPanel({ deviceId, mode }) {
                   <th className="px-3 py-2">Humidity (%)</th>
                   <th className="px-3 py-2">Battery (est.)</th>
                   <th className="px-3 py-2">Lid</th>
-                  <th className="px-3 py-2">GPS</th>
                   <th className="px-3 py-2">Source</th>
                   <th className="px-3 py-2">Record ID</th>
                 </tr>
@@ -147,12 +141,11 @@ export default function ReadingsPanel({ deviceId, mode }) {
                       <td className="px-3 py-2 font-medium text-slate-900">{formatNumber(row.temperatureC, 1)}</td>
                       <td className="px-3 py-2 text-slate-700">{formatNumber(row.humidityPct, 0)}</td>
                       <td className="px-3 py-2 text-slate-700">
-                        {row.batteryPct === null ? '--' : `${row.batteryPct}%`}
+                        {row.batteryPct === null || row.batteryPct === undefined ? 'USB' : `${row.batteryPct}%`}
                       </td>
                       <td className="px-3 py-2 text-slate-700">
                         {row.lidOpen === null ? '--' : row.lidOpen ? 'Open' : 'Closed'}
                       </td>
-                      <td className="px-3 py-2 text-slate-700">{row.gpsFix ? 'Fix' : 'No fix'}</td>
                       <td className="px-3 py-2">
                         <Badge tone={row.dataSource === 'synchronized' ? 'blue' : 'slate'}>{row.dataSource}</Badge>
                         {row.isSimulated && (

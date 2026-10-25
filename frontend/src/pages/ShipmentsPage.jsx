@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Package, Pencil, Plus, Search } from 'lucide-react';
 import { createShipment, updateShipment } from '../api/endpoints.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useLive } from '../context/LiveDataContext.jsx';
 import { useShipmentList } from '../hooks/useShipments.js';
 import Badge from '../components/ui/Badge.jsx';
@@ -18,6 +19,7 @@ import { cleanParams } from '../utils/params.js';
 
 export default function ShipmentsPage() {
   const { devices } = useLive();
+  const { isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get('search') || '';
 
@@ -58,11 +60,17 @@ export default function ShipmentsPage() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Shipments</h1>
-          <p className="text-slate-500">Create shipments, assign a device, and set product-specific temperature limits</p>
+          <p className="text-slate-500">
+            {isAdmin
+              ? 'Create shipments, assign a device, and set product-specific temperature limits'
+              : 'View shipments, their limits, and their status'}
+          </p>
         </div>
-        <Button onClick={() => setEditing('new')}>
-          <Plus className="h-4 w-4" /> New shipment
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setEditing('new')}>
+            <Plus className="h-4 w-4" /> New shipment
+          </Button>
+        )}
       </header>
 
       <Card>
@@ -105,7 +113,11 @@ export default function ShipmentsPage() {
           <EmptyState tone="red" title="Could not load shipments" text={list.error} />
         )}
         {rows && rows.length === 0 && (
-          <EmptyState icon={Package} title="No shipments found" text="Create a shipment to start tracking." />
+          <EmptyState
+            icon={Package}
+            title="No shipments found"
+            text={isAdmin ? 'Create a shipment to start tracking.' : 'An administrator can create shipments.'}
+          />
         )}
         {rows && rows.length > 0 && (
           <div className="overflow-x-auto">
@@ -119,7 +131,7 @@ export default function ShipmentsPage() {
                   <th className="px-3 py-2">Limits</th>
                   <th className="px-3 py-2">Expected arrival</th>
                   <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2 text-right">Actions</th>
+                  {isAdmin && <th className="px-3 py-2 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -152,11 +164,13 @@ export default function ShipmentsPage() {
                           {meta.label}
                         </Badge>
                       </td>
-                      <td className="px-3 py-2.5 text-right">
-                        <Button size="sm" variant="ghost" onClick={() => setEditing(item)}>
-                          <Pencil className="h-3.5 w-3.5" /> Edit
-                        </Button>
-                      </td>
+                      {isAdmin && (
+                        <td className="px-3 py-2.5 text-right">
+                          <Button size="sm" variant="ghost" onClick={() => setEditing(item)}>
+                            <Pencil className="h-3.5 w-3.5" /> Edit
+                          </Button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -167,21 +181,23 @@ export default function ShipmentsPage() {
         {result && <Pagination meta={result.meta} onPage={setPage} />}
       </Card>
 
-      <Modal
-        open={Boolean(editing)}
-        title={editing && editing !== 'new' ? `Edit shipment ${editing.shipmentId}` : 'New shipment'}
-        onClose={() => setEditing(null)}
-      >
-        {editing && (
-          <ShipmentForm
-            key={editing === 'new' ? 'new' : editing.shipmentId}
-            shipment={editing === 'new' ? null : editing}
-            devices={devices}
-            onSubmit={save}
-            onCancel={() => setEditing(null)}
-          />
-        )}
-      </Modal>
+      {isAdmin && (
+        <Modal
+          open={Boolean(editing)}
+          title={editing && editing !== 'new' ? `Edit shipment ${editing.shipmentId}` : 'New shipment'}
+          onClose={() => setEditing(null)}
+        >
+          {editing && (
+            <ShipmentForm
+              key={editing === 'new' ? 'new' : editing.shipmentId}
+              shipment={editing === 'new' ? null : editing}
+              devices={devices}
+              onSubmit={save}
+              onCancel={() => setEditing(null)}
+            />
+          )}
+        </Modal>
+      )}
     </div>
   );
 }

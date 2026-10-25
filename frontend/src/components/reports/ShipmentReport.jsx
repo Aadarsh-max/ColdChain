@@ -1,5 +1,4 @@
-import { Download, Printer } from 'lucide-react';
-import { API_URL } from '../../api/client.js';
+import { Printer } from 'lucide-react';
 import { fetchShipmentSummary } from '../../api/endpoints.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { ALERT_LABELS, alertValue } from '../../utils/alertMeta.js';
@@ -9,6 +8,7 @@ import Badge from '../ui/Badge.jsx';
 import Button from '../ui/Button.jsx';
 import Card from '../ui/Card.jsx';
 import DemoBadge from '../ui/DemoBadge.jsx';
+import DownloadButton from '../ui/DownloadButton.jsx';
 import EmptyState from '../ui/EmptyState.jsx';
 
 const RISK_TONE = { low: 'green', moderate: 'amber', high: 'red', critical: 'red' };
@@ -58,7 +58,6 @@ export default function ShipmentReport({ shipmentId }) {
 
   const { shipment, stats, excursions, eventCounts, statusHistory, risk } = data;
   const status = SHIPMENT_STATUS[shipment.status] || { label: shipment.status, tone: 'slate' };
-  const query = encodeURIComponent(shipment.shipmentId);
   const history = [...statusHistory].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
   return (
@@ -66,18 +65,18 @@ export default function ShipmentReport({ shipmentId }) {
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <p className="text-sm text-slate-500">Use Print and choose Save as PDF to keep a copy.</p>
         <div className="flex flex-wrap gap-2">
-          <a
-            href={`${API_URL}/api/reports/readings.csv?shipmentId=${query}`}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            <Download className="h-4 w-4" /> Readings CSV
-          </a>
-          <a
-            href={`${API_URL}/api/reports/alerts.csv?shipmentId=${query}`}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            <Download className="h-4 w-4" /> Events CSV
-          </a>
+          <DownloadButton
+            path="/reports/readings.csv"
+            params={{ shipmentId: shipment.shipmentId }}
+            filename={`readings-${shipment.shipmentId}.csv`}
+            label="Readings CSV"
+          />
+          <DownloadButton
+            path="/reports/alerts.csv"
+            params={{ shipmentId: shipment.shipmentId }}
+            filename={`events-${shipment.shipmentId}.csv`}
+            label="Events CSV"
+          />
           <Button onClick={() => window.print()}>
             <Printer className="h-4 w-4" /> Print report
           </Button>
@@ -122,12 +121,18 @@ export default function ShipmentReport({ shipmentId }) {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Stat label="Readings" value={stats.count} />
             <Stat label="Monitored time" value={durationText(stats.monitoredSeconds)} />
-            <Stat label="Min / Avg / Max (°C)" value={`${formatNumber(stats.minTempC)} / ${formatNumber(stats.avgTempC)} / ${formatNumber(stats.maxTempC)}`} />
+            <Stat
+              label="Min / Avg / Max (°C)"
+              value={`${formatNumber(stats.minTempC)} / ${formatNumber(stats.avgTempC)} / ${formatNumber(stats.maxTempC)}`}
+            />
             <Stat label="Time outside limits" value={durationText(stats.outsideSeconds)} />
             <Stat label="Time inside limits" value={stats.timeInRangePct === null ? '--' : `${stats.timeInRangePct} %`} />
             <Stat label="Synchronized records" value={stats.synchronizedCount} />
             <Stat label="Simulated records" value={stats.simulatedCount} />
-            <Stat label="First to last reading" value={`${formatDateTime(stats.firstAt)} to ${formatDateTime(stats.lastAt)}`} />
+            <Stat
+              label="First to last reading"
+              value={`${formatDateTime(stats.firstAt)} to ${formatDateTime(stats.lastAt)}`}
+            />
           </div>
         )}
         <p className="mt-2 text-xs text-slate-500">
@@ -215,7 +220,10 @@ export default function ShipmentReport({ shipmentId }) {
           {history.map((item, index) => {
             const meta = SHIPMENT_STATUS[item.status] || { label: item.status };
             return (
-              <li key={`${item.status}-${item.at}-${index}`} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+              <li
+                key={`${item.status}-${item.at}-${index}`}
+                className="flex flex-wrap items-baseline justify-between gap-2 text-sm"
+              >
                 <span className="font-semibold text-slate-900">
                   {meta.label}
                   {(item.location || item.note) && (

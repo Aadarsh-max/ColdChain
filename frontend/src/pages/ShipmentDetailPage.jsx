@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Bell, Clock, ListChecks, MapPin, Package, Pencil, ShieldAlert, Thermometer } from 'lucide-react';
 import { updateShipment } from '../api/endpoints.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useLive } from '../context/LiveDataContext.jsx';
 import { useShipmentDetail, useShipmentHistory, useShipmentReadings } from '../hooks/useShipments.js';
 import Badge from '../components/ui/Badge.jsx';
@@ -41,6 +42,7 @@ function Stat({ label, value }) {
 export default function ShipmentDetailPage() {
   const { shipmentId } = useParams();
   const { devices } = useLive();
+  const { isAdmin } = useAuth();
   const [reload, setReload] = useState(0);
   const [editing, setEditing] = useState(false);
 
@@ -103,9 +105,11 @@ export default function ShipmentDetailPage() {
           >
             <Bell className="h-4 w-4" /> Alerts ({activeAlerts} active)
           </Link>
-          <Button onClick={() => setEditing(true)}>
-            <Pencil className="h-4 w-4" /> Edit
-          </Button>
+          {isAdmin && (
+            <Button onClick={() => setEditing(true)}>
+              <Pencil className="h-4 w-4" /> Edit
+            </Button>
+          )}
         </div>
       </header>
 
@@ -177,7 +181,10 @@ export default function ShipmentDetailPage() {
       <Card title="Telemetry summary" icon={Thermometer}>
         {!stats && <EmptyState title="Loading summary..." />}
         {stats && stats.count === 0 && (
-          <EmptyState title="No telemetry linked to this shipment yet" text="Telemetry is linked while the shipment is At Warehouse or In Transit." />
+          <EmptyState
+            title="No telemetry linked to this shipment yet"
+            text="Telemetry is linked while the shipment is At Warehouse or In Transit."
+          />
         )}
         {stats && stats.count > 0 && (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -196,16 +203,20 @@ export default function ShipmentDetailPage() {
       </Card>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card title="Route (valid GPS fixes only)" icon={MapPin}>
+        <Card title="Travelled path" icon={MapPin}>
           <div className="h-[250px]">
             <RouteMini
               points={route}
-              marker={lastPoint ? { latitude: lastPoint.latitude, longitude: lastPoint.longitude, status: 'last_known' } : null}
+              marker={
+                lastPoint
+                  ? { latitude: lastPoint.latitude, longitude: lastPoint.longitude, status: 'last_known' }
+                  : null
+              }
             />
           </div>
           <p className="mt-2 text-[11px] text-slate-400">
-            {route.length} GPS point{route.length === 1 ? '' : 's'}. The grey marker is the last recorded position, not
-            necessarily the current one. The full map is in Phase 6B.
+            {route.length} recorded position{route.length === 1 ? '' : 's'}. Open Live Tracking for the full map and
+            the planned route.
           </p>
         </Card>
 
@@ -215,14 +226,18 @@ export default function ShipmentDetailPage() {
               const meta = SHIPMENT_STATUS[item.status] || { label: item.status };
               return (
                 <li key={`${item.status}-${item.at}-${index}`} className="flex gap-3">
-                  <span className={`mt-1.5 h-3 w-3 shrink-0 rounded-full ${index === 0 ? 'bg-green-500' : 'bg-blue-500'}`} />
+                  <span
+                    className={`mt-1.5 h-3 w-3 shrink-0 rounded-full ${index === 0 ? 'bg-green-500' : 'bg-blue-500'}`}
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                       <span className="text-sm font-semibold text-slate-900">{meta.label}</span>
                       <span className="text-xs text-slate-500">{formatDateTime(item.at)}</span>
                     </div>
                     {(item.location || item.note) && (
-                      <div className="text-xs text-slate-500">{[item.location, item.note].filter(Boolean).join(' · ')}</div>
+                      <div className="text-xs text-slate-500">
+                        {[item.location, item.note].filter(Boolean).join(' · ')}
+                      </div>
                     )}
                   </div>
                 </li>
@@ -299,11 +314,13 @@ export default function ShipmentDetailPage() {
         </Card>
       </div>
 
-      <Modal open={editing} title={`Edit shipment ${shipment.shipmentId}`} onClose={() => setEditing(false)}>
-        {editing && (
-          <ShipmentForm shipment={shipment} devices={devices} onSubmit={save} onCancel={() => setEditing(false)} />
-        )}
-      </Modal>
+      {isAdmin && (
+        <Modal open={editing} title={`Edit shipment ${shipment.shipmentId}`} onClose={() => setEditing(false)}>
+          {editing && (
+            <ShipmentForm shipment={shipment} devices={devices} onSubmit={save} onCancel={() => setEditing(false)} />
+          )}
+        </Modal>
+      )}
     </div>
   );
 }

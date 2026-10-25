@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, Cpu, Settings as SettingsIcon, Wifi } from 'lucide-react';
 import { errorMessage } from '../api/client.js';
 import { fetchSettings, updateSettings } from '../api/endpoints.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useLive } from '../context/LiveDataContext.jsx';
 import { useFetch } from '../hooks/useFetch.js';
 import Badge from '../components/ui/Badge.jsx';
@@ -129,13 +130,19 @@ function Toggle({ checked, onChange, label }) {
   return (
     <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3">
       <span className="text-sm font-medium text-slate-700">{label}</span>
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-blue-600" />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="h-5 w-5 accent-blue-600"
+      />
     </label>
   );
 }
 
 export default function SettingsPage() {
   const { devices, connected, summaryError } = useLive();
+  const { isAdmin } = useAuth();
   const loaded = useFetch(fetchSettings, 'settings');
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -148,11 +155,11 @@ export default function SettingsPage() {
   const setValue = (key) => (event) =>
     setForm((prev) => ({ ...prev, values: { ...prev.values, [key]: event.target.value } }));
 
-  const setPref = (key) => (value) =>
-    setForm((prev) => ({ ...prev, prefs: { ...prev.prefs, [key]: value } }));
+  const setPref = (key) => (value) => setForm((prev) => ({ ...prev, prefs: { ...prev.prefs, [key]: value } }));
 
   const save = async (event) => {
     event.preventDefault();
+    if (!isAdmin) return;
     setMessage({ type: '', text: '' });
 
     const body = {};
@@ -211,70 +218,73 @@ export default function SettingsPage() {
       )}
 
       {form && (
-        <form onSubmit={save} className="space-y-5">
-          {GROUPS.map((group) => (
-            <Card key={group.title} title={group.title} icon={SettingsIcon}>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {group.fields.map((field) => (
-                  <Field key={field.key} label={field.label} hint={field.hint}>
-                    <input
-                      className={inputClass}
-                      type="number"
-                      step={field.step}
-                      min={field.min}
-                      max={field.max}
-                      value={form.values[field.key]}
-                      onChange={setValue(field.key)}
-                    />
-                  </Field>
+        <form onSubmit={save}>
+          <fieldset disabled={!isAdmin} className="m-0 min-w-0 space-y-5 border-0 p-0">
+            {GROUPS.map((group) => (
+              <Card key={group.title} title={group.title} icon={SettingsIcon}>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.fields.map((field) => (
+                    <Field key={field.key} label={field.label} hint={field.hint}>
+                      <input
+                        className={inputClass}
+                        type="number"
+                        step={field.step}
+                        min={field.min}
+                        max={field.max}
+                        value={form.values[field.key]}
+                        onChange={setValue(field.key)}
+                      />
+                    </Field>
+                  ))}
+                </div>
+              </Card>
+            ))}
+
+            <Card title="Alert preferences" icon={SettingsIcon}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {TOGGLES.map((toggle) => (
+                  <Toggle
+                    key={toggle.key}
+                    label={toggle.label}
+                    checked={form.prefs[toggle.key]}
+                    onChange={setPref(toggle.key)}
+                  />
                 ))}
-              </div>
-            </Card>
-          ))}
-
-          <Card title="Alert preferences" icon={SettingsIcon}>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {TOGGLES.map((toggle) => (
                 <Toggle
-                  key={toggle.key}
-                  label={toggle.label}
-                  checked={form.prefs[toggle.key]}
-                  onChange={setPref(toggle.key)}
+                  label="Location tracking expected"
+                  checked={form.gpsExpected}
+                  onChange={(value) => setForm((prev) => ({ ...prev, gpsExpected: value }))}
                 />
-              ))}
-              <Toggle
-                label="Location tracking expected (GPS)"
-                checked={form.gpsExpected}
-                onChange={(value) => setForm((prev) => ({ ...prev, gpsExpected: value }))}
-              />
-            </div>
-            <p className="mt-3 text-xs text-slate-500">
-              Temperature alerts cannot be switched off. Turning a preference off also closes any active alert of that
-              type on the next reading.
-            </p>
-          </Card>
+              </div>
+              <p className="mt-3 text-xs text-slate-500">
+                Temperature alerts cannot be switched off. Turning a preference off also closes any active alert of that
+                type on the next reading.
+              </p>
+            </Card>
 
-          {message.text && (
-            <div
-              className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm ${
-                message.type === 'ok'
-                  ? 'border-green-200 bg-green-50 text-green-700'
-                  : 'border-red-200 bg-red-50 text-red-700'
-              }`}
-            >
-              {message.type === 'ok' && <CheckCircle2 className="h-4 w-4" />}
-              {message.text}
-            </div>
-          )}
+            {message.text && (
+              <div
+                className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm ${
+                  message.type === 'ok'
+                    ? 'border-green-200 bg-green-50 text-green-700'
+                    : 'border-red-200 bg-red-50 text-red-700'
+                }`}
+              >
+                {message.type === 'ok' && <CheckCircle2 className="h-4 w-4" />}
+                {message.text}
+              </div>
+            )}
 
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setForm(toForm(loaded.data))} disabled={saving}>
-              Reset
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Saving...' : 'Save settings'}
-            </Button>
-          </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setForm(toForm(loaded.data))} disabled={saving}>
+                Reset
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Saving...' : 'Save settings'}
+              </Button>
+            </div>
+          </fieldset>
+          {!isAdmin && <p className="mt-3 text-xs text-slate-500">Settings are read-only for viewer accounts.</p>}
         </form>
       )}
 
@@ -309,7 +319,12 @@ export default function SettingsPage() {
                       {item.deviceId} {item.isSimulated && <DemoBadge className="ml-2" />}
                     </td>
                     <td className="px-3 py-2.5">
-                      <Badge tone={item.connectionStatus === 'online' ? 'green' : item.connectionStatus === 'offline' ? 'red' : 'slate'} dot>
+                      <Badge
+                        tone={
+                          item.connectionStatus === 'online' ? 'green' : item.connectionStatus === 'offline' ? 'red' : 'slate'
+                        }
+                        dot
+                      >
                         {item.connectionStatus}
                       </Badge>
                     </td>

@@ -1,20 +1,19 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Bell, CheckCheck, ChevronDown, ChevronRight, Download, X } from 'lucide-react';
+import { Bell, CheckCheck, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { errorMessage } from '../api/client.js';
-import { useAuth } from '../context/AuthContext.jsx';
-import DownloadButton from '../components/ui/DownloadButton.jsx';
 import { acknowledgeAlert } from '../api/endpoints.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useLive } from '../context/LiveDataContext.jsx';
 import { useAlertList } from '../hooks/useAlerts.js';
 import Badge from '../components/ui/Badge.jsx';
 import Button from '../components/ui/Button.jsx';
 import Card from '../components/ui/Card.jsx';
+import DownloadButton from '../components/ui/DownloadButton.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import Field, { inputClass } from '../components/ui/Field.jsx';
 import Pagination from '../components/ui/Pagination.jsx';
 import { ALERT_ICONS, ALERT_LABELS, alertValue } from '../utils/alertMeta.js';
-import { CURRENT_USER } from '../utils/constants.js';
 import { durationText, formatDateTime, secondsSince } from '../utils/format.js';
 import { cleanParams } from '../utils/params.js';
 
@@ -42,6 +41,7 @@ function SummaryTile({ label, value, tone }) {
 
 export default function AlertsPage() {
   const { devices } = useLive();
+  const { isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const shipmentId = searchParams.get('shipmentId') || '';
 
@@ -84,24 +84,23 @@ export default function AlertsPage() {
     setSearchParams({});
   };
 
-  const csvHref = useMemo(() => {
-    const query = new URLSearchParams(
+  const csvParams = useMemo(
+    () =>
       cleanParams({
         shipmentId,
         deviceId: filters.deviceId,
         type: filters.type,
         from: startOfDay(filters.from),
         to: endOfDay(filters.to)
-      })
-    );
-    return `${API_URL}/api/reports/alerts.csv?${query.toString()}`;
-  }, [filters, shipmentId]);
+      }),
+    [filters, shipmentId]
+  );
 
   const acknowledge = async (alert) => {
     setAckingId(alert._id);
     setAckError('');
     try {
-      await acknowledgeAlert(alert._id, CURRENT_USER.name);
+      await acknowledgeAlert(alert._id);
       setReload((value) => value + 1);
     } catch (err) {
       setAckError(errorMessage(err));
@@ -110,14 +109,7 @@ export default function AlertsPage() {
     }
   };
 
-  const action = (
-    <a
-      href={csvHref}
-      className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-    >
-      <Download className="h-4 w-4" /> Export CSV
-    </a>
-  );
+  const action = <DownloadButton path="/reports/alerts.csv" params={csvParams} filename="alerts.csv" />;
 
   return (
     <div className="space-y-5">
@@ -283,6 +275,8 @@ export default function AlertsPage() {
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600">
                               <CheckCheck className="h-4 w-4" /> Acknowledged
                             </span>
+                          ) : !isAdmin ? (
+                            <span className="text-xs text-slate-400">View only</span>
                           ) : (
                             <Button
                               size="sm"
