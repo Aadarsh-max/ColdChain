@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { errorMessage } from '../../api/client.js';
 import { SHIPMENT_STATUS } from '../../utils/constants.js';
 import Button from '../ui/Button.jsx';
 import Field, { inputClass } from '../ui/Field.jsx';
+import LocationPicker from './LocationPicker.jsx';
 
 const pad = (value) => String(value).padStart(2, '0');
 
@@ -22,6 +24,12 @@ const readNumber = (raw, label) => {
   const value = Number(raw);
   if (!Number.isFinite(value)) return { error: `${label} must be a number` };
   return { value };
+};
+
+const numberOrNull = (raw) => {
+  if (raw === '' || raw === null || raw === undefined) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
 };
 
 const initialState = (shipment) => ({
@@ -49,6 +57,7 @@ export default function ShipmentForm({ shipment, devices, onSubmit, onCancel }) 
   const [form, setForm] = useState(() => initialState(shipment));
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [picker, setPicker] = useState(null);
 
   const set = (key) => (event) => setForm((prev) => ({ ...prev, [key]: event.target.value }));
 
@@ -56,6 +65,30 @@ export default function ShipmentForm({ shipment, devices, onSubmit, onCancel }) 
   if (form.deviceId && !deviceOptions.some((item) => item.deviceId === form.deviceId)) {
     deviceOptions.push({ deviceId: form.deviceId, isSimulated: false });
   }
+
+  const applyPicked = (kind, place) => {
+    setForm((prev) =>
+      kind === 'origin'
+        ? {
+            ...prev,
+            originName: place.name || prev.originName,
+            originLat: String(place.latitude),
+            originLng: String(place.longitude)
+          }
+        : {
+            ...prev,
+            destinationName: place.name || prev.destinationName,
+            destinationLat: String(place.latitude),
+            destinationLng: String(place.longitude)
+          }
+    );
+    setPicker(null);
+  };
+
+  const pickerInitial =
+    picker === 'origin'
+      ? { name: form.originName, latitude: numberOrNull(form.originLat), longitude: numberOrNull(form.originLng) }
+      : { name: form.destinationName, latitude: numberOrNull(form.destinationLat), longitude: numberOrNull(form.destinationLng) };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -78,6 +111,12 @@ export default function ShipmentForm({ shipment, devices, onSubmit, onCancel }) 
     if (!form.productName.trim()) return setError('Product name is required');
     if (!form.originName.trim() || !form.destinationName.trim()) {
       return setError('Origin and destination names are required');
+    }
+    if ((originLat.value === null) !== (originLng.value === null)) {
+      return setError('Origin needs both latitude and longitude, or neither');
+    }
+    if ((destinationLat.value === null) !== (destinationLng.value === null)) {
+      return setError('Destination needs both latitude and longitude, or neither');
     }
 
     const start = fromLocalInput(form.startTime);
@@ -121,135 +160,166 @@ export default function ShipmentForm({ shipment, devices, onSubmit, onCancel }) 
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Shipment ID">
-          <input
-            className={inputClass}
-            value={form.shipmentId}
-            onChange={set('shipmentId')}
-            disabled={isEdit}
-            placeholder="CC2001"
-          />
-        </Field>
-        <Field label="Tracking code">
-          <input className={inputClass} value={form.trackingCode} onChange={set('trackingCode')} />
-        </Field>
-        <Field label="Product name">
-          <input className={inputClass} value={form.productName} onChange={set('productName')} placeholder="Medicine" />
-        </Field>
-        <Field label="Product category">
-          <input
-            className={inputClass}
-            value={form.productCategory}
-            onChange={set('productCategory')}
-            placeholder="Medicine"
-          />
-        </Field>
-        <Field label="Minimum temperature (°C)" hint="Set this from the storage range on the product label.">
-          <input className={inputClass} type="number" step="0.1" value={form.minTempC} onChange={set('minTempC')} />
-        </Field>
-        <Field label="Maximum temperature (°C)">
-          <input className={inputClass} type="number" step="0.1" value={form.maxTempC} onChange={set('maxTempC')} />
-        </Field>
-      </div>
+    <>
+      <form onSubmit={submit} className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Shipment ID">
+            <input
+              className={inputClass}
+              value={form.shipmentId}
+              onChange={set('shipmentId')}
+              disabled={isEdit}
+              placeholder="CC2001"
+            />
+          </Field>
+          <Field label="Tracking code">
+            <input className={inputClass} value={form.trackingCode} onChange={set('trackingCode')} />
+          </Field>
+          <Field label="Product name">
+            <input className={inputClass} value={form.productName} onChange={set('productName')} placeholder="Medicine" />
+          </Field>
+          <Field label="Product category">
+            <input
+              className={inputClass}
+              value={form.productCategory}
+              onChange={set('productCategory')}
+              placeholder="Medicine"
+            />
+          </Field>
+          <Field label="Minimum temperature (°C)" hint="Set this from the storage range on the product label.">
+            <input className={inputClass} type="number" step="0.1" value={form.minTempC} onChange={set('minTempC')} />
+          </Field>
+          <Field label="Maximum temperature (°C)">
+            <input className={inputClass} type="number" step="0.1" value={form.maxTempC} onChange={set('maxTempC')} />
+          </Field>
+        </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="Origin" className="sm:col-span-1">
-          <input className={inputClass} value={form.originName} onChange={set('originName')} placeholder="Palghar, MH" />
-        </Field>
-        <Field label="Origin latitude (optional)">
-          <input className={inputClass} type="number" step="any" value={form.originLat} onChange={set('originLat')} />
-        </Field>
-        <Field label="Origin longitude (optional)">
-          <input className={inputClass} type="number" step="any" value={form.originLng} onChange={set('originLng')} />
-        </Field>
-        <Field label="Destination">
-          <input
-            className={inputClass}
-            value={form.destinationName}
-            onChange={set('destinationName')}
-            placeholder="Pune, MH"
-          />
-        </Field>
-        <Field label="Destination latitude (optional)">
-          <input
-            className={inputClass}
-            type="number"
-            step="any"
-            value={form.destinationLat}
-            onChange={set('destinationLat')}
-          />
-        </Field>
-        <Field label="Destination longitude (optional)">
-          <input
-            className={inputClass}
-            type="number"
-            step="any"
-            value={form.destinationLng}
-            onChange={set('destinationLng')}
-          />
-        </Field>
-      </div>
+        <div className="rounded-xl border border-slate-200 p-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-bold text-slate-800">Origin</span>
+            <Button size="sm" variant="secondary" onClick={() => setPicker('origin')}>
+              <MapPin className="h-4 w-4" /> Pick on map
+            </Button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Place name">
+              <input className={inputClass} value={form.originName} onChange={set('originName')} placeholder="Palghar, MH" />
+            </Field>
+            <Field label="Latitude">
+              <input className={inputClass} type="number" step="any" value={form.originLat} onChange={set('originLat')} />
+            </Field>
+            <Field label="Longitude">
+              <input className={inputClass} type="number" step="any" value={form.originLng} onChange={set('originLng')} />
+            </Field>
+          </div>
+        </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Start time">
-          <input className={inputClass} type="datetime-local" value={form.startTime} onChange={set('startTime')} />
-        </Field>
-        <Field label="Expected arrival">
-          <input
-            className={inputClass}
-            type="datetime-local"
-            value={form.expectedArrival}
-            onChange={set('expectedArrival')}
-          />
-        </Field>
-        <Field
-          label="Assigned device"
-          hint="Telemetry is linked to this shipment only while it is At Warehouse or In Transit."
-        >
-          <select className={inputClass} value={form.deviceId} onChange={set('deviceId')}>
-            <option value="">No device</option>
-            {deviceOptions.map((item) => (
-              <option key={item.deviceId} value={item.deviceId}>
-                {item.deviceId}
-                {item.isSimulated ? ' (demo)' : ''}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Status">
-          <select className={inputClass} value={form.status} onChange={set('status')}>
-            {Object.entries(SHIPMENT_STATUS).map(([key, item]) => (
-              <option key={key} value={key}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Status note (added to history when the status changes)" className="sm:col-span-2">
-          <input
-            className={inputClass}
-            value={form.statusNote}
-            onChange={set('statusNote')}
-            maxLength={200}
-            placeholder="Dispatched from college"
-          />
-        </Field>
-      </div>
+        <div className="rounded-xl border border-slate-200 p-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-bold text-slate-800">Destination</span>
+            <Button size="sm" variant="secondary" onClick={() => setPicker('destination')}>
+              <MapPin className="h-4 w-4" /> Pick on map
+            </Button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Place name">
+              <input
+                className={inputClass}
+                value={form.destinationName}
+                onChange={set('destinationName')}
+                placeholder="Mumbai, MH"
+              />
+            </Field>
+            <Field label="Latitude">
+              <input
+                className={inputClass}
+                type="number"
+                step="any"
+                value={form.destinationLat}
+                onChange={set('destinationLat')}
+              />
+            </Field>
+            <Field label="Longitude">
+              <input
+                className={inputClass}
+                type="number"
+                step="any"
+                value={form.destinationLng}
+                onChange={set('destinationLng')}
+              />
+            </Field>
+          </div>
+        </div>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Start time">
+            <input className={inputClass} type="datetime-local" value={form.startTime} onChange={set('startTime')} />
+          </Field>
+          <Field label="Expected arrival">
+            <input
+              className={inputClass}
+              type="datetime-local"
+              value={form.expectedArrival}
+              onChange={set('expectedArrival')}
+            />
+          </Field>
+          <Field
+            label="Assigned device"
+            hint="Telemetry is linked to this shipment only while it is At Warehouse or In Transit."
+          >
+            <select className={inputClass} value={form.deviceId} onChange={set('deviceId')}>
+              <option value="">No device</option>
+              {deviceOptions.map((item) => (
+                <option key={item.deviceId} value={item.deviceId}>
+                  {item.deviceId}
+                  {item.isSimulated ? ' (demo)' : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Status">
+            <select className={inputClass} value={form.status} onChange={set('status')}>
+              {Object.entries(SHIPMENT_STATUS).map(([key, item]) => (
+                <option key={key} value={key}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Status note (added to history when the status changes)" className="sm:col-span-2">
+            <input
+              className={inputClass}
+              value={form.statusNote}
+              onChange={set('statusNote')}
+              maxLength={200}
+              placeholder="Dispatched from college"
+            />
+          </Field>
+        </div>
+
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        )}
+
+        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+          <Button variant="secondary" onClick={onCancel} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? 'Saving...' : isEdit ? 'Save changes' : 'Create shipment'}
+          </Button>
+        </div>
+      </form>
+
+      {picker && (
+        <LocationPicker
+          key={picker}
+          title={picker === 'origin' ? 'Select origin on the map' : 'Select destination on the map'}
+          initial={pickerInitial}
+          onSelect={(place) => applyPicked(picker, place)}
+          onClose={() => setPicker(null)}
+        />
       )}
-
-      <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-        <Button variant="secondary" onClick={onCancel} disabled={saving}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={saving}>
-          {saving ? 'Saving...' : isEdit ? 'Save changes' : 'Create shipment'}
-        </Button>
-      </div>
-    </form>
+    </>
   );
 }

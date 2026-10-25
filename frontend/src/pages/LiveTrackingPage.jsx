@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { useDeviceOverview, useLatest, useSelectedDevice } from '../hooks/useDevices.js';
-import { useShipmentHistory } from '../hooks/useShipments.js';
+import { useShipmentHistory, useShipmentList } from '../hooks/useShipments.js';
 import Badge from '../components/ui/Badge.jsx';
 import Card from '../components/ui/Card.jsx';
 import DemoBadge from '../components/ui/DemoBadge.jsx';
@@ -9,6 +10,8 @@ import DeviceSelect from '../components/device/DeviceSelect.jsx';
 import LiveMap from '../components/map/LiveMap.jsx';
 import { SITE_NAME } from '../utils/constants.js';
 import { durationText, formatCoordinate, formatDateTime, formatNumber } from '../utils/format.js';
+
+const SHIPMENT_PARAMS = { limit: 100 };
 
 function Row({ label, children }) {
   return (
@@ -27,13 +30,30 @@ export default function LiveTrackingPage() {
   const overview = useDeviceOverview(deviceId);
   const data = overview.data;
   const latest = useLatest(deviceId, data ? data.latest : null);
-  const shipment = data ? data.shipment : null;
-  const history = useShipmentHistory(shipment ? shipment.shipmentId : null);
+  const activeShipment = data ? data.shipment : null;
 
-  const location = data ? data.location : null;
+  const list = useShipmentList(SHIPMENT_PARAMS);
+  const allShipments = list.data && Array.isArray(list.data.data) ? list.data.data : [];
+
+  const [pickedId, setPickedId] = useState('');
+  useEffect(() => {
+    setPickedId('');
+  }, [deviceId]);
+
+  const activeId = activeShipment ? activeShipment.shipmentId : '';
+  const selectedId = pickedId || activeId;
+  const shipment =
+    allShipments.find((item) => item.shipmentId === selectedId) ||
+    (activeShipment && activeShipment.shipmentId === selectedId ? activeShipment : null);
+  const isDeviceShipment = Boolean(selectedId) && selectedId === activeId;
+
+  const history = useShipmentHistory(selectedId || null);
+
+  const rawLocation = data ? data.location : null;
+  const location = isDeviceShipment || !selectedId ? rawLocation : { available: false, status: 'none' };
   const status = location ? location.status : 'none';
   const atSite = status === 'manual';
-  const route = history.data ? history.data.route : [];
+  const route = history.data && selectedId ? history.data.route : [];
   const speed = status === 'current' && latest ? latest.speedKmph : null;
 
   const canPlan = Boolean(shipment) && hasCoords(shipment.origin) && hasCoords(shipment.destination);
@@ -41,7 +61,10 @@ export default function LiveTrackingPage() {
 
   let notice = 'No location has been received yet, so nothing is drawn on the map.';
   let tone = 'bg-slate-50 border-slate-200 text-slate-700';
-  if (status === 'current') {
+  if (selectedId && !isDeviceShipment) {
+    notice = `Showing shipment ${selectedId} only. The device is not assigned to this shipment, so no live device marker is shown.`;
+    tone = 'bg-slate-50 border-slate-200 text-slate-700';
+  } else if (status === 'current') {
     notice = 'Current position from a valid GPS fix.';
     tone = 'bg-green-50 border-green-200 text-green-800';
   } else if (atSite) {
@@ -70,6 +93,19 @@ export default function LiveTrackingPage() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {device && device.isSimulated && <DemoBadge />}
+          <select
+            value={selectedId}
+            onChange={(event) => setPickedId(event.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm"
+          >
+            {!selectedId && <option value="">No shipment</option>}
+            {allShipments.map((item) => (
+              <option key={item.shipmentId} value={item.shipmentId}>
+                {item.shipmentId} - {item.origin ? item.origin.name : ''} to {item.destination ? item.destination.name : ''}
+                {item.shipmentId === activeId ? ' (on device)' : ''}
+              </option>
+            ))}
+          </select>
           <DeviceSelect devices={devices} value={deviceId} onChange={setDeviceId} />
         </div>
       </header>
@@ -94,9 +130,10 @@ export default function LiveTrackingPage() {
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
             <Card title="Map" icon={MapPin}>
               <LiveMap
+                key={selectedId || 'none'}
                 route={route}
                 location={location}
-                shipmentId={shipment ? shipment.shipmentId : null}
+                shipmentId={selectedId || null}
                 speed={speed}
                 planned={planned}
               />
@@ -136,7 +173,7 @@ export default function LiveTrackingPage() {
                     <Row label="Travelled points">{route.length}</Row>
                   </>
                 ) : (
-                  <EmptyState title="No active shipment" text="Planned routes and travelled paths are stored per shipment." />
+                  <EmptyState title="No shipment selected" text="Pick a shipment from the list at the top." />
                 )}
               </Card>
             </div>
