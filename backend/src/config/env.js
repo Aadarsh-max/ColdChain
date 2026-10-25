@@ -3,6 +3,8 @@ import { z } from 'zod';
 
 dotenv.config();
 
+const DEFAULT_SECRET = 'dev-only-secret-change-me-before-deploying-0000';
+
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(5055),
@@ -17,7 +19,12 @@ const schema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(60000),
   RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(300),
   MAX_TIMESTAMP_FUTURE_SECONDS: z.coerce.number().int().min(0).default(300),
-  MAX_TIMESTAMP_AGE_DAYS: z.coerce.number().int().min(1).default(30)
+  MAX_TIMESTAMP_AGE_DAYS: z.coerce.number().int().min(1).default(30),
+  JWT_SECRET: z.string().min(32).default(DEFAULT_SECRET),
+  JWT_EXPIRES_IN: z
+    .string()
+    .regex(/^\d+[smhd]$/, 'Use a value like 30m, 8h, or 1d')
+    .default('8h')
 });
 
 const parsed = schema.safeParse(process.env);
@@ -28,6 +35,18 @@ if (!parsed.success) {
     console.error(`  ${issue.path.join('.')}: ${issue.message}`);
   }
   process.exit(1);
+}
+
+const insecureSecret =
+  parsed.data.JWT_SECRET === DEFAULT_SECRET || parsed.data.JWT_SECRET.startsWith('replace-with');
+
+if (insecureSecret && parsed.data.NODE_ENV === 'production') {
+  console.error('JWT_SECRET must be set to a long random value in production.');
+  process.exit(1);
+}
+
+if (insecureSecret && parsed.data.NODE_ENV === 'development') {
+  console.warn('WARNING: JWT_SECRET is not set to a private value. Set one in backend/.env before sharing this server.');
 }
 
 export const env = Object.freeze({

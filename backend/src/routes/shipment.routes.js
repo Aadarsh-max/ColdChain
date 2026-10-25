@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { validate } from '../middleware/validate.js';
+import { requireRole } from '../middleware/auth.js';
 import { readingsQuerySchema, shipmentsQuerySchema } from '../validators/query.schema.js';
 import {
   createShipmentSchema,
@@ -18,10 +19,11 @@ import {
 const router = Router();
 
 router.get('/', validate({ query: shipmentsQuerySchema }), getShipments);
-router.post('/', validate({ body: createShipmentSchema }), postShipment);
+router.post('/', requireRole('admin'), validate({ body: createShipmentSchema }), postShipment);
 router.get('/:shipmentId', validate({ params: shipmentParamsSchema }), getShipment);
 router.patch(
   '/:shipmentId',
+  requireRole('admin'),
   validate({ params: shipmentParamsSchema, body: updateShipmentSchema }),
   patchShipment
 );

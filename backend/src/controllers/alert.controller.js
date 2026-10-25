@@ -8,7 +8,7 @@ export const getAlerts = asyncHandler(async (req, res) => {
 });
 
 export const patchAcknowledge = asyncHandler(async (req, res) => {
-  const data = await acknowledgeAlert(req.validated.params.alertId, req.validated.body.acknowledgedBy);
+  const data = await acknowledgeAlert(req.validated.params.alertId, req.user.name);
   if (!data) throw new AppError(404, 'Alert not found');
   res.json({ data });
 });
