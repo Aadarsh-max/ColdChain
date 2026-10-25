@@ -1,7 +1,9 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Bell, CheckCheck, ChevronDown, ChevronRight, Download, X } from 'lucide-react';
-import { API_URL, errorMessage } from '../api/client.js';
+import { errorMessage } from '../api/client.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import DownloadButton from '../components/ui/DownloadButton.jsx';
 import { acknowledgeAlert } from '../api/endpoints.js';
 import { useLive } from '../context/LiveDataContext.jsx';
 import { useAlertList } from '../hooks/useAlerts.js';
