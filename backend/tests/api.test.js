@@ -67,11 +67,11 @@ import { streamReadingsCsv } from "../src/services/reportService.js";
 
 const validShipment = {
   shipmentId: "CC1024",
-  productName: "Vaccines",
-  minTempC: 2,
-  maxTempC: 8,
-  origin: { name: "Mumbai" },
-  destination: { name: "Pune" },
+  productName: "Medicine",
+  minTempC: 10,
+  maxTempC: 15,
+  origin: { name: "Palghar" },
+  destination: { name: "Mumbai" },
 };
 
 beforeEach(() => {
@@ -168,13 +168,13 @@ describe("shipments", () => {
     const res = await request(app).post("/api/shipments").send(validShipment);
     expect(res.status).toBe(201);
     expect(createShipment).toHaveBeenCalledTimes(1);
-    expect(createShipment.mock.calls[0][0].productName).toBe("Vaccines");
+    expect(createShipment.mock.calls[0][0].productName).toBe("Medicine");
   });
 
   it("rejects a shipment whose min temperature is not below max", async () => {
     const res = await request(app)
       .post("/api/shipments")
-      .send({ ...validShipment, minTempC: 9 });
+      .send({ ...validShipment, minTempC: 16 });
     expect(res.status).toBe(400);
     expect(createShipment).not.toHaveBeenCalled();
   });

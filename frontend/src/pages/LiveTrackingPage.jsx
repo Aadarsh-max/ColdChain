@@ -19,6 +19,9 @@ function Row({ label, children }) {
   );
 }
 
+const hasCoords = (point) =>
+  Boolean(point) && typeof point.latitude === 'number' && typeof point.longitude === 'number';
+
 export default function LiveTrackingPage() {
   const { devices, device, deviceId, setDeviceId } = useSelectedDevice();
   const overview = useDeviceOverview(deviceId);
@@ -32,6 +35,9 @@ export default function LiveTrackingPage() {
   const atSite = status === 'manual';
   const route = history.data ? history.data.route : [];
   const speed = status === 'current' && latest ? latest.speedKmph : null;
+
+  const canPlan = Boolean(shipment) && hasCoords(shipment.origin) && hasCoords(shipment.destination);
+  const planned = canPlan ? { origin: shipment.origin, destination: shipment.destination } : null;
 
   let notice = 'No location has been received yet, so nothing is drawn on the map.';
   let tone = 'bg-slate-50 border-slate-200 text-slate-700';
@@ -60,7 +66,7 @@ export default function LiveTrackingPage() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Live Tracking</h1>
-          <p className="text-slate-500">Device location and route history</p>
+          <p className="text-slate-500">Device location, planned route and travelled path</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {device && device.isSimulated && <DemoBadge />}
@@ -78,6 +84,13 @@ export default function LiveTrackingPage() {
         <>
           <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${tone}`}>{notice}</div>
 
+          {shipment && !canPlan && (
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+              To draw the planned route, edit shipment {shipment.shipmentId} and fill in the origin and destination
+              latitude and longitude.
+            </div>
+          )}
+
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
             <Card title="Map" icon={MapPin}>
               <LiveMap
@@ -85,10 +98,11 @@ export default function LiveTrackingPage() {
                 location={location}
                 shipmentId={shipment ? shipment.shipmentId : null}
                 speed={speed}
+                planned={planned}
               />
               <p className="mt-2 text-[11px] text-slate-400">
-                Blue marker: device location. Red marker: live GPS position. Grey marker: last known position. Green
-                dot: route start.
+                Red line: planned route from origin (A) to destination (B). Blue line: path actually travelled, from
+                GPS points. Blue marker: device location. Red dot: live GPS position. Grey dot: last known position.
               </p>
             </Card>
 
@@ -119,10 +133,10 @@ export default function LiveTrackingPage() {
                     <Row label="Route">
                       {shipment.origin.name} → {shipment.destination.name}
                     </Row>
-                    <Row label="Route points">{route.length}</Row>
+                    <Row label="Travelled points">{route.length}</Row>
                   </>
                 ) : (
-                  <EmptyState title="No active shipment" text="Route history is stored per shipment. Only the marker is shown." />
+                  <EmptyState title="No active shipment" text="Planned routes and travelled paths are stored per shipment." />
                 )}
               </Card>
             </div>
